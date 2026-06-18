@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hackathon-worker-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hackathon-worker
+  template:
+    metadata:
+      labels:
+        app: hackathon-worker
+    spec:
+      containers:
+        - name: hackathon-worker
+          image: ECR_REPO_URL_PLACEHOLDER:latest
+          resources:
+            requests:
+              cpu: "500m"      
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"      
+              memory: "1024Mi"
+          envFrom:
+            - secretRef:
+                name: hackathon-worker-secrets
