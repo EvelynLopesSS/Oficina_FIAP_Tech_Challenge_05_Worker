@@ -9,28 +9,39 @@ env:
   CLUSTER_NAME: hackathon-eks-cluster
 
 jobs:
-  test:
-    name: 🧪 Run Unit Tests
+  test-and-security:
+    name: 🧪 Run Unit Tests & Security
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
 
       - name: 🐍 Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: 📦 Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt bandit safety
 
       - name: 🧪 Run tests
-        run: python -m unittest discover tests
+        env:
+          # Passamos chaves fakes na pipeline só pro boto3 não quebrar durante os mocks
+          AWS_DEFAULT_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: testing
+          AWS_SECRET_ACCESS_KEY: testing
+          S3_BUCKET_NAME: testing
+          SQS_QUEUE_URL: testing
+          DB_HOST: testing
+        run: pytest tests/ -v
+
+      - name: 🛡️ Security Scan (Bandit)
+        run: bandit -r app/ -ll -f html -o bandit.html || true
 
   deploy-worker:
     name: 🐳 Build & Deploy Worker
     runs-on: ubuntu-latest
-    needs: test # Garante que este job só rode se o job 'test' passar
+    needs: test-and-security # Garante que este job só rode se os testes passarem
     steps:
       - uses: actions/checkout@v4
 
