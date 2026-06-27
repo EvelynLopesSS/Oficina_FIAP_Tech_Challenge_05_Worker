@@ -9,4 +9,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Inicia o robô em background
-CMD ["python", "app/worker.py"]
+CMD ["python", "-m", "app.worker"]
