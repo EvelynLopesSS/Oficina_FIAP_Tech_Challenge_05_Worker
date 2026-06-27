@@ -2,9 +2,9 @@ import os
 import json
 import time
 import shutil
-from aws_services import sqs_client, QUEUE_URL, download_from_s3, upload_to_s3, delete_sqs_message, send_error_email, generate_presigned_url, send_success_email
-from database import update_video_status
-from processor import process_video
+from app.aws_services import sqs_client, QUEUE_URL, download_from_s3, upload_to_s3, delete_sqs_message, send_error_email, generate_presigned_url, send_success_email
+from app.database import update_video_status
+from app.processor import process_video
 
 def poll_queue():
     print("🤖 Worker iniciado. Aguardando vídeos na fila SQS...")
