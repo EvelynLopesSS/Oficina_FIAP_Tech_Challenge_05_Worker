@@ -2,7 +2,7 @@ import os
 import json
 import time
 import shutil
-from aws_services import sqs_client, QUEUE_URL, download_from_s3, upload_to_s3, delete_sqs_message, send_error_email
+from aws_services import sqs_client, QUEUE_URL, download_from_s3, upload_to_s3, delete_sqs_message, send_error_email, generate_presigned_url, send_success_email
 from database import update_video_status
 from processor import process_video
 
@@ -45,8 +45,12 @@ def process_message(message):
         process_video(local_video_path, local_output_dir, local_zip_path)
         upload_to_s3(local_zip_path, s3_zip_key)
         
+        # Atualiza o status e envia e-mail de sucesso com link para download
         update_video_status(video_id, 'CONCLUIDO', s3_zip_key)
+        download_link = generate_presigned_url(s3_zip_key)
+        send_success_email(user_email, download_link)
         print(f"✅ Vídeo ID {video_id} processado com sucesso!")
+
         
     except Exception as e:
         print(f"❌ Erro ao processar vídeo ID {video_id}: {e}")
