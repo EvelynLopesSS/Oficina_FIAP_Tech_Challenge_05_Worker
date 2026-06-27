@@ -1,6 +1,6 @@
-# 🤖 Hackathon Fase 5 - Worker de Processamento (Repo 4 de 5)
+# 🤖 CYBERFRAME AI - Worker de Processamento (Repo 4 de 5)
 
-Este repositório contém o **Microsserviço Worker (Robô)** do Sistema de Processamento de Vídeos da FIAP. 
+Este repositório contém o **Microsserviço Worker (Robô)** do sistema **CYBERFRAME AI**. 
 
 Diferente de uma API tradicional, este serviço não possui rotas web nem expõe portas para a internet. Ele atua de forma **assíncrona e em background** (Headless), lendo a fila de mensageria e executando o trabalho pesado de processamento de imagens, garantindo que o sistema seja resiliente a picos de tráfego.
 
@@ -9,7 +9,9 @@ Diferente de uma API tradicional, este serviço não possui rotas web nem expõe
 - **Processamento (OpenCV):** Faz o download do vídeo do **Amazon S3**, utiliza a biblioteca de Inteligência Artificial *OpenCV* para fatiar o vídeo e extrair 1 frame (imagem) a cada segundo.
 - **Compactação:** Reúne todas as imagens extraídas e cria um arquivo `.zip`.
 - **Upload e Persistência:** Envia o `.zip` gerado de volta para o S3 e atualiza o status do banco de dados (RDS PostgreSQL) para `CONCLUIDO`.
-- **Notificação de Falha:** Caso o vídeo esteja corrompido ou o processamento falhe, altera o status para `ERRO` e envia um e-mail transacional (SMTP) para o usuário.
+- **Notificações Transacionais:** Envia e-mails em HTML para o usuário via SMTP.
+  - **Em caso de sucesso:** Envia um link seguro e temporário (URL pré-assinada do S3, válida por 24h) para download do arquivo `.zip`.
+  - **Em caso de falha:** Notifica o usuário sobre o erro para que ele possa tentar novamente.
 
 ## 🛠️ Tecnologias Utilizadas
 - **Python 3.11**
@@ -39,8 +41,9 @@ graph TD
     Worker -->|3. Extrai Frames & Zipa| Worker
     Worker -->|4. Upload .zip| S3
     Worker -->|5. Atualiza para CONCLUIDO| RDS
-    Worker -.->|Se Falhar: Atualiza para ERRO| RDS
-    Worker -.->|Se Falhar: Dispara Aviso| Email
+    Worker -->|6. Dispara E-mail de Sucesso| Email
+    Worker -.->|Se Falhar: Atualiza para ERRO | RDS
+    Worker -.->|Se Falhar: Dispara E-mail de Falha| Email
 ```
 
 ## 🚀 Como Executar o Deploy
@@ -55,5 +58,3 @@ O deploy é automatizado no Kubernetes (EKS) via GitHub Actions.
    - `EMAIL_OFICINA` e `EMAIL_SENHA_APP` (Credenciais do Gmail para envio de alertas)
 2. Faça um push na branch `main` ou acione o workflow manualmente.
 3. A pipeline gerará a imagem Docker com as dependências do OpenCV e aplicará o manifesto `deployment.yaml` no cluster.
-
-
