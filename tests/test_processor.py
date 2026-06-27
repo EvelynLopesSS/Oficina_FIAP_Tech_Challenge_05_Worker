@@ -16,7 +16,6 @@ class TestVideoProcessor(unittest.TestCase):
     @patch('app.processor.cv2.VideoCapture')
     @patch('app.processor.cv2.imwrite')
     @patch('app.processor.zipfile.ZipFile')
-    def test_process_video_success(self, mock_zipfile, mock_imwrite, mock_videocapture, mock_makedirs, mock_exists):
     def test_process_video_success(self, mock_zipfile, mock_imwrite, mock_videocapture, mock_makedirs, mock_exists, mock_getsize):
         """
         Testa o fluxo de sucesso do processamento de vídeo.
@@ -76,11 +75,13 @@ class TestVideoProcessor(unittest.TestCase):
         """
         Testa o comportamento quando o OpenCV não consegue abrir o vídeo.
         """
+        mock_getsize.return_value = 1024 # Precisa ser mockado mesmo que não usado diretamente no fluxo
         mock_cam = MagicMock()
         mock_cam.isOpened.return_value = False # Simula falha ao abrir
         mock_videocapture.return_value = mock_cam
 
         with self.assertRaisesRegex(Exception, "Não foi possível abrir o vídeo"):
+            process_video('/tmp/bad_video.mp4', '/tmp/frames', '/tmp/frames.zip')
 
 if __name__ == '__main__':
     unittest.main()
