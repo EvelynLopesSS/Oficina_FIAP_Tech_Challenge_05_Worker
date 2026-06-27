@@ -9,9 +9,28 @@ env:
   CLUSTER_NAME: hackathon-eks-cluster
 
 jobs:
+  test:
+    name: 🧪 Run Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: 🧪 Run tests
+        run: python -m unittest discover tests
+
   deploy-worker:
     name: 🐳 Build & Deploy Worker
     runs-on: ubuntu-latest
+    needs: test # Garante que este job só rode se o job 'test' passar
     steps:
       - uses: actions/checkout@v4
 
