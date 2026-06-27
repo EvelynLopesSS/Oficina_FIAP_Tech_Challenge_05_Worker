@@ -5,10 +5,16 @@ import json
 import sys
 
 # Adiciona o diretório 'app' ao path para permitir a importação dos módulos
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../app')))
 
-from app.worker import process_message
+# Mock dos módulos antes de importar o worker para resolver o ModuleNotFoundError
+MOCK_MODULES = {
+    'aws_services': MagicMock(),
+    'database': MagicMock(),
+    'processor': MagicMock(),
+}
 
+@patch.dict('sys.modules', MOCK_MODULES)
 class TestWorker(unittest.TestCase):
 
     def _create_mock_message(self):
@@ -22,6 +28,11 @@ class TestWorker(unittest.TestCase):
             'ReceiptHandle': 'test_receipt_handle',
             'Body': json.dumps(message_body)
         }
+
+    def setUp(self):
+        """Importa o módulo do worker aqui, depois que os mocks foram aplicados."""
+        from worker import process_message
+        self.process_message = process_message
 
     @patch('app.worker.delete_sqs_message')
     @patch('app.worker.shutil.rmtree')
@@ -37,7 +48,7 @@ class TestWorker(unittest.TestCase):
         """Testa o fluxo de sucesso do processamento da mensagem."""
         mock_message = self._create_mock_message()
         
-        process_message(mock_message)
+        self.process_message(mock_message)
 
         # Verifica se as funções foram chamadas na ordem correta
         mock_download.assert_called_once()
@@ -69,7 +80,7 @@ class TestWorker(unittest.TestCase):
         """Testa o fluxo de falha durante o processamento."""
         mock_message = self._create_mock_message()
 
-        process_message(mock_message)
+        self.process_message(mock_message)
 
         # Verifica as chamadas iniciais
         mock_download.assert_called_once()
