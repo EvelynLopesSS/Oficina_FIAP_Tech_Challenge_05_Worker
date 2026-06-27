@@ -3,6 +3,7 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from .logo_data import LOGO_BASE64
 
 s3_client = boto3.client('s3', region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"))
 sqs_client = boto3.client('sqs', region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"))
@@ -47,25 +48,18 @@ def send_error_email(to_email):
     <head>
         <meta charset="UTF-8">
         <style>
-            body {{ font-family: 'Courier New', Courier, monospace; background-color: #0a0a0a; color: #e0e0e0; margin: 0; padding: 20px; }}
-            .container {{ background-color: #1a1a1a; border: 1px solid #00f3ff; box-shadow: 0 0 15px rgba(0, 243, 255, 0.2); max-width: 600px; margin: auto; padding: 30px; text-align: center; }}
-            .logo svg {{ filter: drop-shadow(0 0 5px #00f3ff); }}
-            h1 {{ color: #ff4d4d; text-shadow: 0 0 8px #ff4d4d; }}
-            p {{ font-size: 16px; line-height: 1.6; }}
-            .footer {{ font-size: 12px; color: #888; margin-top: 30px; }}
+            body {{ font-family: Arial, sans-serif; background-color: #ffffff; color: #333333; margin: 0; padding: 20px; }}
+            .container {{ max-width: 600px; margin: auto; padding: 20px; border: 1px solid #dddddd; text-align: center; }}
+            .logo {{ margin-bottom: 20px; }}
+            h1 {{ color: #D9534F; }} /* Vermelho para erro */
+            p {{ font-size: 16px; line-height: 1.5; }}
+            .footer {{ font-size: 12px; color: #777777; margin-top: 20px; }}
         </style>
     </head>
     <body>
         <div class="container">
             <div class="logo">
-                <svg width="80" height="80" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00f3ff" /><stop offset="100%" stop-color="#bf00ff" /></linearGradient>
-                    </defs>
-                    <path d="M50 10 L90 30 L90 70 L50 90 L10 70 L10 30 Z" fill="none" stroke="url(#neonGradient)" stroke-width="4"/>
-                    <circle cx="50" cy="50" r="15" fill="none" stroke="#00f3ff" stroke-width="3"/>
-                    <circle cx="50" cy="50" r="5" fill="#00f3ff"/>
-                </svg>
+                <img src="data:image/png;base64,{LOGO_BASE64}" alt="CyberFrame AI Logo" width="100">
             </div>
             <h1>Falha na Análise</h1>
             <p>Olá,</p>
@@ -109,33 +103,25 @@ def send_success_email(to_email, download_link):
     <head>
         <meta charset="UTF-8">
         <style>
-            body {{ font-family: 'Courier New', Courier, monospace; background-color: #0a0a0a; color: #e0e0e0; margin: 0; padding: 20px; }}
-            .container {{ background-color: #1a1a1a; border: 1px solid #00f3ff; box-shadow: 0 0 15px rgba(0, 243, 255, 0.2); max-width: 600px; margin: auto; padding: 30px; text-align: center; }}
-            .logo svg {{ filter: drop-shadow(0 0 5px #00f3ff); }}
-            h1 {{ color: #00ff66; text-shadow: 0 0 8px #00ff66; }}
-            p {{ font-size: 16px; line-height: 1.6; }}
-            .button {{ display: inline-block; background-color: transparent; border: 1px solid #00f3ff; color: #00f3ff; padding: 12px 25px; text-decoration: none; font-size: 16px; margin-top: 20px; transition: all 0.3s ease; box-shadow: 0 0 10px rgba(0, 243, 255, 0.2); }}
-            .button:hover {{ background-color: #00f3ff; color: #000; box-shadow: 0 0 20px rgba(0, 243, 255, 0.6); }}
-            .footer {{ font-size: 12px; color: #888; margin-top: 30px; }}
+            body {{ font-family: Arial, sans-serif; background-color: #ffffff; color: #333333; margin: 0; padding: 20px; }}
+            .container {{ max-width: 600px; margin: auto; padding: 20px; border: 1px solid #dddddd; text-align: center; }}
+            .logo {{ margin-bottom: 20px; }}
+            h1 {{ color: #5CB85C; }} /* Verde para sucesso */
+            p {{ font-size: 16px; line-height: 1.5; }}
+            .button {{ display: inline-block; background-color: #007BFF; color: #ffffff; padding: 12px 25px; text-decoration: none; font-size: 16px; margin-top: 20px; border-radius: 5px; }}
+            .footer {{ font-size: 12px; color: #777777; margin-top: 20px; }}
         </style>
     </head>
     <body>
         <div class="container">
             <div class="logo">
-                <svg width="80" height="80" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00f3ff" /><stop offset="100%" stop-color="#bf00ff" /></linearGradient>
-                    </defs>
-                    <path d="M50 10 L90 30 L90 70 L50 90 L10 70 L10 30 Z" fill="none" stroke="url(#neonGradient)" stroke-width="4"/>
-                    <circle cx="50" cy="50" r="15" fill="none" stroke="#00f3ff" stroke-width="3"/>
-                    <circle cx="50" cy="50" r="5" fill="#00f3ff"/>
-                </svg>
+                <img src="data:image/png;base64,{LOGO_BASE64}" alt="CyberFrame AI Logo" width="100">
             </div>
             <h1>Análise Concluída</h1>
             <p>Olá,</p>
             <p>O processamento do seu arquivo de vídeo foi concluído com sucesso. Os frames extraídos estão prontos para download.</p>
             <a href="{download_link}" class="button">BAIXAR PACOTE DE FRAMES</a>
-            <p style="font-size: 12px; color: #a0a0a0; margin-top: 15px;">Este link de acesso é seguro e expira em 24 horas.</p>
+            <p style="font-size: 12px; color: #777777; margin-top: 15px;">Este link de acesso é seguro e expira em 24 horas.</p>
             <div class="footer">
                 <p>&copy; CYBERFRAME AI // Sistema de Extração Neural</p>
             </div>
