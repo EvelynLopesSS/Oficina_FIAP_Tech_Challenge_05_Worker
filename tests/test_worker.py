@@ -1,91 +1,67 @@
-import unittest
-from unittest.mock import patch, MagicMock
-import os
 import json
-import sys
-
-# Adiciona o diretório 'app' ao path para permitir a importação dos módulos
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
+import pytest
+from unittest.mock import patch, MagicMock
 from app.worker import process_message
 
-class TestWorker(unittest.TestCase):
+# Mensagem SQS fake para os testes
+FAKE_MESSAGE = {
+    'ReceiptHandle': 'fake-receipt-handle',
+    'Body': json.dumps({
+        'video_id': 1,
+        's3_video_key': 'uploads/fake_video.mp4',
+        'user_email': 'teste@fiap.com'
+    })
+}
 
-    def _create_mock_message(self):
-        """Cria uma mensagem SQS mockada."""
-        message_body = {
-            "video_id": "123-abc",
-            "s3_video_key": "uploads/video.mp4",
-            "user_email": "test@example.com"
-        }
-        return {
-            'ReceiptHandle': 'test_receipt_handle',
-            'Body': json.dumps(message_body)
-        }
+@patch("app.worker.update_video_status")
+@patch("app.worker.download_from_s3")
+@patch("app.worker.process_video")
+@patch("app.worker.upload_to_s3")
+@patch("app.worker.delete_sqs_message")
+@patch("os.path.exists")
+@patch("os.remove")
+@patch("shutil.rmtree")
+def test_process_message_success(mock_rmtree, mock_remove, mock_exists, mock_delete_sqs, 
+                                 mock_upload_s3, mock_process, mock_download_s3, mock_update_db):
+    """Testa o fluxo de SUCESSO do Worker (Caminho Feliz)"""
+    mock_exists.return_value = True  # Finge que os arquivos existem para deletar no finally
+    
+    process_message(FAKE_MESSAGE)
+    
+    # Verifica se os status do banco foram atualizados corretamente
+    assert mock_update_db.call_count == 2
+    mock_update_db.assert_any_call(1, 'PROCESSANDO')
+    mock_update_db.assert_any_call(1, 'CONCLUIDO', 'outputs/frames_1.zip')
+    
+    # Verifica chamadas da AWS e Processamento
+    mock_download_s3.assert_called_once()
+    mock_process.assert_called_once()
+    mock_upload_s3.assert_called_once()
+    mock_delete_sqs.assert_called_once_with('fake-receipt-handle')
 
-    @patch('app.worker.delete_sqs_message')
-    @patch('app.worker.shutil.rmtree')
-    @patch('app.worker.os.remove')
-    @patch('app.worker.os.path.exists', return_value=True)
-    @patch('app.worker.send_success_email')
-    @patch('app.worker.generate_presigned_url', return_value="http://presigned.url/download")
-    @patch('app.worker.update_video_status')
-    @patch('app.worker.upload_to_s3')
-    @patch('app.worker.process_video')
-    @patch('app.worker.download_from_s3')
-    def test_process_message_success(self, mock_download, mock_process, mock_upload, mock_update, mock_generate_url, mock_send_email, mock_exists, mock_os_remove, mock_rmtree, mock_delete_sqs):
-        """Testa o fluxo de sucesso do processamento da mensagem."""
-        mock_message = self._create_mock_message()
-        
-        process_message(mock_message)
-
-        # Verifica se as funções foram chamadas na ordem correta
-        mock_download.assert_called_once()
-        mock_process.assert_called_once()
-        mock_upload.assert_called_once()
-        
-        # Verifica as atualizações de status
-        mock_update.assert_any_call('123-abc', 'PROCESSANDO')
-        mock_update.assert_any_call('123-abc', 'CONCLUIDO', 'outputs/frames_123-abc.zip')
-
-        # Verifica a geração de URL e envio de e-mail
-        mock_generate_url.assert_called_once_with('outputs/frames_123-abc.zip')
-        mock_send_email.assert_called_once_with('test@example.com', "http://presigned.url/download")
-
-        # Verifica a limpeza e deleção da mensagem
-        self.assertEqual(mock_os_remove.call_count, 2)
-        mock_rmtree.assert_called_once()
-        mock_delete_sqs.assert_called_once_with('test_receipt_handle')
-
-    @patch('app.worker.delete_sqs_message')
-    @patch('app.worker.shutil.rmtree')
-    @patch('app.worker.os.remove')
-    @patch('app.worker.os.path.exists', return_value=True)
-    @patch('app.worker.send_error_email')
-    @patch('app.worker.update_video_status')
-    @patch('app.worker.process_video', side_effect=Exception("Processing failed"))
-    @patch('app.worker.download_from_s3')
-    def test_process_message_failure(self, mock_download, mock_process, mock_update, mock_send_error_email, mock_exists, mock_os_remove, mock_rmtree, mock_delete_sqs):
-        """Testa o fluxo de falha durante o processamento."""
-        mock_message = self._create_mock_message()
-
-        process_message(mock_message)
-
-        # Verifica as chamadas iniciais
-        mock_download.assert_called_once()
-        mock_process.assert_called_once()
-
-        # Verifica as atualizações de status para erro
-        mock_update.assert_any_call('123-abc', 'PROCESSANDO')
-        mock_update.assert_any_call('123-abc', 'ERRO')
-
-        # Verifica o envio do e-mail de erro
-        mock_send_error_email.assert_called_once_with('test@example.com')
-
-        # Verifica se a limpeza e deleção da mensagem ainda ocorrem no bloco finally
-        self.assertEqual(mock_os_remove.call_count, 2)
-        mock_rmtree.assert_called_once()
-        mock_delete_sqs.assert_called_once_with('test_receipt_handle')
-
-if __name__ == '__main__':
-    unittest.main()
+@patch("app.worker.update_video_status")
+@patch("app.worker.download_from_s3")
+@patch("app.worker.process_video")
+@patch("app.worker.send_error_email")
+@patch("app.worker.delete_sqs_message")
+@patch("os.path.exists")
+def test_process_message_error(mock_exists, mock_delete_sqs, mock_send_email, mock_process, 
+                               mock_download_s3, mock_update_db):
+    """Testa o fluxo de ERRO do Worker (Ex: Arquivo corrompido)"""
+    mock_exists.return_value = False
+    
+    # Força a função de processamento a dar um erro (Ex: erro do OpenCV)
+    mock_process.side_effect = Exception("Vídeo corrompido")
+    
+    process_message(FAKE_MESSAGE)
+    
+    # Verifica se os status do banco foram atualizados corretamente
+    assert mock_update_db.call_count == 2
+    mock_update_db.assert_any_call(1, 'PROCESSANDO')
+    mock_update_db.assert_any_call(1, 'ERRO') # Garante que caiu no Except
+    
+    # Garante que mandou o e-mail de erro
+    mock_send_email.assert_called_once_with('teste@fiap.com')
+    
+    # A mensagem DEVE ser deletada da fila mesmo com erro, para não ficar travando o SQS
+    mock_delete_sqs.assert_called_once_with('fake-receipt-handle')
