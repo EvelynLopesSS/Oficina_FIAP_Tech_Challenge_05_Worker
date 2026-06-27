@@ -3,7 +3,6 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from .logo_data import LOGO_BASE64
 
 s3_client = boto3.client('s3', region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"))
 sqs_client = boto3.client('sqs', region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"))
@@ -53,81 +52,191 @@ def _send_email(to_email, subject, html_body):
         print(f"❌ Erro ao enviar email SMTP: {e}")
 
 def _build_html_template(title, title_color, content_html):
-    """Constrói o template HTML base do e-mail com estilos inline."""
     return f"""
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title}</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{title}</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
-    <table border="0" cellpadding="0" cellspacing="0" width="100%">
-        <tr>
-            <td style="padding: 20px 0;">
-                <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse; background-color: #ffffff; border: 1px solid #dddddd;">
-                    <tr>
-                        <td align="center" style="padding: 40px 0 30px 0;">
-                            <img src="data:image/png;base64,{LOGO_BASE64}" alt="CyberFrame AI Logo" width="100" style="display: block;" />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 0 30px 30px 30px;">
-                            <h1 style="color: {title_color}; text-align: center;">{title}</h1>
-                            {content_html}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td align="center" style="padding: 20px 30px; background-color: #eeeeee; color: #777777; font-size: 12px;">
-                            &copy; CYBERFRAME AI // Sistema de Extração Neural
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
+
+<body style="
+margin:0;
+padding:30px;
+background:#0F1117;
+font-family:Arial,Helvetica,sans-serif;
+">
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td align="center">
+
+<table width="620" cellpadding="0" cellspacing="0" border="0"
+style="
+background:#171B22;
+border:2px solid #00F3FF;
+border-radius:12px;
+">
+
+<tr>
+<td align="center" style="padding:45px 30px 25px 30px;">
+
+<div style="
+font-size:38px;
+font-weight:bold;
+color:#00F3FF;
+letter-spacing:3px;
+">
+⚡ CYBERFRAME AI
+</div>
+
+<div style="
+margin-top:10px;
+font-family:Consolas,monospace;
+font-size:14px;
+color:#9FA6B2;
+">
+v2.0 // Powered by FIAP X
+</div>
+
+</td>
+</tr>
+
+<tr>
+<td style="padding:10px 45px;">
+
+<h1 style="
+margin:0;
+text-align:center;
+font-size:30px;
+color:{title_color};
+">
+{title}
+</h1>
+
+<div style="
+margin-top:35px;
+font-size:17px;
+line-height:1.8;
+color:#FFFFFF;
+text-align:center;
+">
+{content_html}
+</div>
+
+</td>
+</tr>
+
+<tr>
+<td align="center" style="padding:35px;">
+
+<hr style="
+border:none;
+border-top:1px solid #2B313C;
+margin-bottom:25px;
+">
+
+<div style="
+font-size:12px;
+color:#7F8A99;
+font-family:Consolas,monospace;
+letter-spacing:1px;
+">
+CYBERFRAME AI • Neural Video Processing Platform
+</div>
+
+</td>
+</tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+
 </body>
 </html>
 """
 
 def send_error_email(to_email):
+
     subject = "❌ Falha no Processamento | CYBERFRAME AI"
     title = "Falha na Análise"
-    title_color = "#D9534F"  # Vermelho
+    title_color = "#FF5C5C"
+
     content_html = """
-        <p style="font-size: 16px; line-height: 1.5; color: #333333; text-align: center;">Olá,</p>
-        <p style="font-size: 16px; line-height: 1.5; color: #333333; text-align: center;">
-            Detectamos uma anomalia ao processar seu arquivo de vídeo. Isso pode ocorrer devido a um formato não suportado ou arquivo corrompido.
-        </p>
-        <p style="font-size: 16px; line-height: 1.5; color: #333333; text-align: center;">
-            Por favor, verifique a integridade do seu arquivo e tente fazer o upload novamente.
-        </p>
-    """
+
+<p style="font-size:18px;color:#FFFFFF;">
+Olá!
+</p>
+
+<p style="font-size:16px;color:#D7DEE8;">
+Detectamos uma falha durante o processamento do seu vídeo.
+</p>
+
+<p style="font-size:16px;color:#D7DEE8;">
+O arquivo pode estar corrompido ou em um formato incompatível.
+</p>
+
+<p style="font-size:16px;color:#D7DEE8;">
+Faça um novo upload e tente novamente.
+</p>
+
+"""
+
     html_body = _build_html_template(title, title_color, content_html)
     _send_email(to_email, subject, html_body)
 
 def send_success_email(to_email, download_link):
+
     subject = "✅ Processamento Concluído | CYBERFRAME AI"
     title = "Análise Concluída"
-    title_color = "#5CB85C"  # Verde
+    title_color = "#00F3FF"
+
     content_html = f"""
-        <p style="font-size: 16px; line-height: 1.5; color: #333333; text-align: center;">Olá,</p>
-        <p style="font-size: 16px; line-height: 1.5; color: #333333; text-align: center;">
-            O processamento do seu arquivo de vídeo foi concluído com sucesso. Os frames extraídos estão prontos para download.
-        </p>
-        <table border="0" cellpadding="0" cellspacing="0" width="100%">
-            <tr>
-                <td align="center" style="padding: 20px 0;">
-                    <a href="{download_link}" target="_blank" style="display: inline-block; background-color: #007BFF; color: #ffffff; padding: 12px 25px; text-decoration: none; font-size: 16px; border-radius: 5px;">
-                        BAIXAR PACOTE DE FRAMES
-                    </a>
-                </td>
-            </tr>
-        </table>
-        <p style="font-size: 12px; color: #777777; text-align: center;">
-            Este link de acesso é seguro e expira em 24 horas.
-        </p>
-    """
+
+<p style="font-size:18px;color:#FFFFFF;">
+Olá!
+</p>
+
+<p style="font-size:16px;color:#D7DEE8;">
+Seu vídeo foi processado com sucesso.
+</p>
+
+<p style="font-size:16px;color:#D7DEE8;">
+Os frames extraídos já estão disponíveis para download.
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+<td align="center" style="padding:35px 0;">
+
+<a href="{download_link}"
+style="
+display:inline-block;
+background:#00F3FF;
+color:#0F1117;
+padding:16px 36px;
+text-decoration:none;
+font-size:16px;
+font-weight:bold;
+border-radius:8px;
+letter-spacing:1px;
+">
+⬇ BAIXAR PACOTE (.ZIP)
+</a>
+
+</td>
+</tr>
+</table>
+
+<p style="font-size:13px;color:#9FA6B2;">
+Este link permanecerá válido durante as próximas 24 horas.
+</p>
+
+"""
+
     html_body = _build_html_template(title, title_color, content_html)
     _send_email(to_email, subject, html_body)
